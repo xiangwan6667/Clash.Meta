@@ -53,7 +53,12 @@ func handleVShareLink(names map[string]int, url *url.URL, scheme string, proxy m
 				realityOpts["support-x25519mlkem768"] = enabled
 			}
 		}
+		if value := query.Get("pqv"); value != "" {
+			realityOpts["mldsa65-verify"] = value
+		}
 		proxy["reality-opts"] = realityOpts
+	} else if query.Get("pqv") != "" {
+		return errors.New("REALITY pqv requires pbk")
 	}
 
 	switch query.Get("packetEncoding") {
@@ -334,11 +339,26 @@ func parseXHTTPExtra(extra map[string]any, opts map[string]any) {
 			if sec == "reality" {
 				if realityAny, ok := dsAny["realitySettings"].(map[string]any); ok {
 					realityOpts := make(map[string]any)
-					if pk, ok := realityAny["publicKey"].(string); ok && pk != "" {
+					// Keep the existing publicKey precedence if both aliases are present.
+					pk, _ := realityAny["publicKey"].(string)
+					if pk == "" {
+						pk, _ = realityAny["password"].(string)
+					}
+					if pk != "" {
 						realityOpts["public-key"] = pk
 					}
 					if sid, ok := realityAny["shortId"].(string); ok && sid != "" {
 						realityOpts["short-id"] = sid
+					}
+					if key, ok := realityAny["mldsa65Verify"].(string); ok && key != "" {
+						realityOpts["mldsa65-verify"] = key
+					}
+					// An omitted name keeps Mihomo's existing download inheritance.
+					if sn, ok := realityAny["serverName"].(string); ok && sn != "" {
+						ds["servername"] = sn
+					}
+					if fp, ok := realityAny["fingerprint"].(string); ok && fp != "" {
+						ds["client-fingerprint"] = fp
 					}
 					if len(realityOpts) > 0 {
 						ds["reality-opts"] = realityOpts

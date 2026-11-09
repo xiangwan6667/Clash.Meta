@@ -1,7 +1,6 @@
 package tls
 
 import (
-	"bytes"
 	"context"
 	"crypto/aes"
 	"crypto/cipher"
@@ -21,6 +20,7 @@ import (
 	"github.com/metacubex/mihomo/ntp"
 
 	"github.com/metacubex/http"
+	"github.com/metacubex/mldsa"
 	"github.com/metacubex/randv2"
 	utls "github.com/metacubex/utls"
 	"golang.org/x/crypto/hkdf"
@@ -29,8 +29,10 @@ import (
 const RealityMaxShortIDLen = 8
 
 type RealityConfig struct {
-	PublicKey *ecdh.PublicKey
-	ShortID   [RealityMaxShortIDLen]byte
+	PublicKey     *ecdh.PublicKey
+	ShortID       [RealityMaxShortIDLen]byte
+	ClientVersion *[3]byte
+	Mldsa65Verify *mldsa.PublicKey
 
 	SupportX25519MLKEM768 bool
 }
@@ -38,7 +40,8 @@ type RealityConfig struct {
 func GetRealityConn(ctx context.Context, conn net.Conn, fingerprint UClientHelloID, serverName string, realityConfig *RealityConfig) (net.Conn, error) {
 	for retry := 0; ; retry++ {
 		verifier := &realityVerifier{
-			serverName: serverName,
+			serverName:    serverName,
+			mldsa65Verify: realityConfig.Mldsa65Verify,
 		}
 		uConfig := &utls.Config{
 			Time:                   ntp.Now,
@@ -74,6 +77,9 @@ func GetRealityConn(ctx context.Context, conn net.Conn, fingerprint UClientHello
 		hello.SessionId[0] = 1
 		hello.SessionId[1] = 8
 		hello.SessionId[2] = 2
+		if realityConfig.ClientVersion != nil {
+			copy(hello.SessionId[:3], realityConfig.ClientVersion[:])
+		}
 
 		//log.Debugln("REALITY hello.sessionId[:16]: %v", hello.SessionId[:16])
 
@@ -166,9 +172,10 @@ func realityClientFallback(uConn net.Conn, serverName string, fingerprint utls.C
 
 type realityVerifier struct {
 	*utls.UConn
-	serverName string
-	authKey    []byte
-	verified   bool
+	serverName    string
+	authKey       []byte
+	verified      bool
+	mldsa65Verify *mldsa.PublicKey
 }
 
 func (c *realityVerifier) VerifyConnection(state utls.ConnectionState) error {
@@ -177,7 +184,18 @@ func (c *realityVerifier) VerifyConnection(state utls.ConnectionState) error {
 	if pub, ok := certs[0].PublicKey.(ed25519.PublicKey); ok {
 		h := hmac.New(sha512.New, c.authKey)
 		h.Write(pub)
-		if bytes.Equal(h.Sum(nil), certs[0].Signature) {
+		if hmac.Equal(h.Sum(nil), certs[0].Signature) {
+			if c.mldsa65Verify != nil {
+				if len(certs[0].Extensions) == 0 {
+					return errors.New("REALITY ML-DSA-65 signature is missing")
+				}
+				// Xray signs the HMAC of the certificate key and both TLS hellos.
+				h.Write(c.HandshakeState.Hello.Raw)
+				h.Write(c.HandshakeState.ServerHello.Raw)
+				if err := mldsa.Verify(c.mldsa65Verify, h.Sum(nil), certs[0].Extensions[0].Value, nil); err != nil {
+					return errors.New("REALITY ML-DSA-65 authentication failed")
+				}
+			}
 			c.verified = true
 			return nil
 		}

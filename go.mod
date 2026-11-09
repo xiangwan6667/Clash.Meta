@@ -29,6 +29,7 @@ require (
 	github.com/metacubex/kcp-go v0.0.0-20260105040817-550693377604
 	github.com/metacubex/mhurl v0.1.0
 	github.com/metacubex/mipstack v0.0.0-20261019124225-9a80a07eaeb9
+	github.com/metacubex/mldsa v0.1.1
 	github.com/metacubex/mlkem v0.1.0
 	github.com/metacubex/quic-go v0.61.1-0.20260727080200-2548683b76f4
 	github.com/metacubex/randv2 v0.2.0

@@ -974,7 +974,9 @@ proxies: # socks5
     reality-opts:
       public-key: xxx
       short-id: xxx # optional
-      support-x25519mlkem768: false # 如果服务端支持可手动设置为true
+      support-x25519mlkem768: false # 新版 Xray REALITY 通常需要 true 和支持该密钥交换的指纹（如 chrome）；旧服务端可能需要 false
+      # mldsa65-verify: xxx # 可选：服务端 ML-DSA-65 验证公钥，使用无填充的 Base64URL；分享链接中的 pqv 会自动转换
+      # client-version: 26.3.27 # 可选：上报给 REALITY 服务端的版本；仅在服务端有版本限制且确认兼容时设置，默认 1.8.2
     client-fingerprint: chrome # cannot be empty
 
   - name: "vless-reality-grpc"
@@ -1001,7 +1003,9 @@ proxies: # socks5
     reality-opts:
       public-key: CrrQSjAG_YkHLwvM2M-7XkKJilgL5upBKCp0od0tLhE
       short-id: 10f897e26c4b9478
-      support-x25519mlkem768: false # 如果服务端支持可手动设置为true
+      support-x25519mlkem768: false # 新版 Xray REALITY 通常需要 true 和支持该密钥交换的指纹（如 chrome）；旧服务端可能需要 false
+      # mldsa65-verify: xxx # 可选：服务端 ML-DSA-65 验证公钥，使用无填充的 Base64URL
+      # client-version: 26.3.27 # 可选：上报给 REALITY 服务端的版本；默认 1.8.2
 
   - name: "vless-ws"
     type: vless
@@ -1097,13 +1101,14 @@ proxies: # socks5
       #   shadow-tls-opts: ...
       #   restls-opts: ...
       #   jls-opts: ...
-      #   reality-opts: ...
+      #   reality-opts: ... # 独立配置时需分别设置 support-x25519mlkem768、mldsa65-verify 等参数
+      #   # 导入 Xray 的 downloadSettings 时，同时存在 publicKey 和 password 会保留原有 publicKey 优先行为；请确保两者一致
       #   skip-cert-verify: false
       #   name-cert-verify: example.com # 仅修改证书 DNSName 校验目标，不修改 SNI
       #   fingerprint: ...
       #   certificate: ...
       #   private-key: ...
-      #   servername: xxx.com
+      #   servername: xxx.com # 下载连接需要不同 SNI 时显式设置；省略时继承主连接的 servername
       #   client-fingerprint: chrome
 
 
@@ -2325,7 +2330,7 @@ listeners:
     #   # min-record-len: 0
     #   # proxy: ""
     #   # rate-limit: 0 # fallback 双向转发限速，单位 bit/s；0 表示不限速
-    # 如果填写reality-config则开启reality（注意不可与certificate和private-key同时填写）
+    # 如果填写reality-config则开启reality（注意不可与certificate和private-key同时填写）；当前入站不提供 ML-DSA-65 签名
     # reality-config:
     #   dest: test.com:443
     #   private-key: jNXHt1yRo0vDuchQlIP6Z0ZvjT3KtzVI-T4E7RoLJS0 # 可由 mihomo generate reality-keypair 命令生成
