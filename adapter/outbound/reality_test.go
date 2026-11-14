@@ -5,8 +5,57 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/metacubex/mihomo/common/structure"
 	"github.com/metacubex/mldsa"
 )
+
+func TestVlessRealityHybridDefaults(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		value   any
+		present bool
+		want    bool
+	}{
+		{name: "omitted", want: true},
+		{name: "null", present: true, want: true},
+		{name: "enabled", value: true, present: true, want: true},
+		{name: "disabled", value: false, present: true},
+		{name: "one", value: 1, present: true, want: true},
+		{name: "zero", value: 0, present: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			reality := map[string]any{
+				"public-key": "ppQ9FwLrLIa0AOrp1WvcyiaQ37vg2WSy_CD4bIdiTUw",
+			}
+			if tc.present {
+				reality["support-x25519mlkem768"] = tc.value
+			}
+			mapping := map[string]any{
+				"name": "reality-defaults", "server": "127.0.0.1", "port": 443,
+				"uuid": "a1b2c3d4-eacc-4433-981b-7e5f9a8b1234",
+				"tls":  true, "client-fingerprint": "chrome", "reality-opts": reality,
+			}
+			decoder := structure.NewDecoder(structure.Option{
+				TagName: "proxy", WeaklyTypedInput: true, KeyReplacer: structure.DefaultKeyReplacer,
+			})
+			var option VlessOption
+			if err := decoder.Decode(mapping, &option); err != nil {
+				t.Fatal(err)
+			}
+			proxy, err := NewVless(option)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer proxy.Close()
+			if proxy.realityConfig == nil {
+				t.Fatal("missing REALITY configuration")
+			}
+			if got := proxy.realityConfig.SupportX25519MLKEM768; got != tc.want {
+				t.Fatalf("hybrid key exchange = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
 
 func TestRealityOptionsCompatibility(t *testing.T) {
 	const publicKey = "ppQ9FwLrLIa0AOrp1WvcyiaQ37vg2WSy_CD4bIdiTUw"
@@ -16,7 +65,8 @@ func TestRealityOptionsCompatibility(t *testing.T) {
 	}
 	verifyKey := base64.RawURLEncoding.EncodeToString(privateKey.PublicKey().Bytes())
 
-	config, err := (RealityOptions{PublicKey: publicKey, ShortID: "0123", Mldsa65Verify: verifyKey, ClientVersion: "26.3.27", SupportX25519MLKEM768: true}).Parse()
+	supportHybrid := true
+	config, err := (RealityOptions{PublicKey: publicKey, ShortID: "0123", Mldsa65Verify: verifyKey, ClientVersion: "26.3.27", SupportX25519MLKEM768: &supportHybrid}).Parse()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,8 +77,8 @@ func TestRealityOptionsCompatibility(t *testing.T) {
 		t.Fatal("REALITY compatibility settings were not preserved")
 	}
 	legacy, err := (RealityOptions{PublicKey: publicKey}).Parse()
-	if err != nil || legacy == nil || legacy.ClientVersion != nil || legacy.Mldsa65Verify != nil || legacy.SupportX25519MLKEM768 {
-		t.Fatalf("legacy defaults changed: config=%+v error=%v", legacy, err)
+	if err != nil || legacy == nil || legacy.ClientVersion != nil || legacy.Mldsa65Verify != nil || !legacy.SupportX25519MLKEM768 {
+		t.Fatalf("unexpected REALITY defaults: config=%+v error=%v", legacy, err)
 	}
 	versionZero, err := (RealityOptions{PublicKey: publicKey, ClientVersion: "0.0.0"}).Parse()
 	if err != nil || versionZero.ClientVersion == nil || *versionZero.ClientVersion != [3]byte{} {

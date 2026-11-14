@@ -974,7 +974,7 @@ proxies: # socks5
     reality-opts:
       public-key: xxx
       short-id: xxx # optional
-      support-x25519mlkem768: false # 新版 Xray REALITY 通常需要 true 和支持该密钥交换的指纹（如 chrome）；旧服务端可能需要 false
+      support-x25519mlkem768: true # 默认开启，需要支持该密钥交换的指纹（如 chrome）；旧服务端可显式设置 false
       # mldsa65-verify: xxx # 可选：服务端 ML-DSA-65 验证公钥，使用无填充的 Base64URL；分享链接中的 pqv 会自动转换
       # client-version: 26.3.27 # 可选：上报给 REALITY 服务端的版本；仅在服务端有版本限制且确认兼容时设置，默认 1.8.2
     client-fingerprint: chrome # cannot be empty
@@ -1003,7 +1003,7 @@ proxies: # socks5
     reality-opts:
       public-key: CrrQSjAG_YkHLwvM2M-7XkKJilgL5upBKCp0od0tLhE
       short-id: 10f897e26c4b9478
-      support-x25519mlkem768: false # 新版 Xray REALITY 通常需要 true 和支持该密钥交换的指纹（如 chrome）；旧服务端可能需要 false
+      support-x25519mlkem768: true # 默认开启，需要支持该密钥交换的指纹（如 chrome）；旧服务端可显式设置 false
       # mldsa65-verify: xxx # 可选：服务端 ML-DSA-65 验证公钥，使用无填充的 Base64URL
       # client-version: 26.3.27 # 可选：上报给 REALITY 服务端的版本；默认 1.8.2
 

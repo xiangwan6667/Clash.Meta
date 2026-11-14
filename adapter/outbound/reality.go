@@ -19,13 +19,13 @@ type RealityOptions struct {
 	ClientVersion string `proxy:"client-version,omitempty"`
 	Mldsa65Verify string `proxy:"mldsa65-verify,omitempty"`
 
-	SupportX25519MLKEM768 bool `proxy:"support-x25519mlkem768,omitempty"`
+	SupportX25519MLKEM768 *bool `proxy:"support-x25519mlkem768,omitempty"`
 }
 
 func (o RealityOptions) Parse() (*tlsC.RealityConfig, error) {
 	if o.PublicKey != "" {
 		config := new(tlsC.RealityConfig)
-		config.SupportX25519MLKEM768 = o.SupportX25519MLKEM768
+		config.SupportX25519MLKEM768 = o.SupportX25519MLKEM768 == nil || *o.SupportX25519MLKEM768
 
 		const x25519ScalarSize = 32
 		publicKey, err := base64.RawURLEncoding.DecodeString(o.PublicKey)
