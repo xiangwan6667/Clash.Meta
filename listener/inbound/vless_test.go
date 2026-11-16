@@ -348,6 +348,7 @@ func TestInboundVless_JLS(t *testing.T) {
 }
 
 func TestInboundVless_Reality(t *testing.T) {
+	supportHybrid := false
 	inboundOptions := inbound.VlessOption{
 		RealityConfig: inbound.RealityConfig{
 			Dest:        net.JoinHostPort(realityDest, "443"),
@@ -360,8 +361,9 @@ func TestInboundVless_Reality(t *testing.T) {
 		TLS:        true,
 		ServerName: realityDest,
 		RealityOpts: outbound.RealityOptions{
-			PublicKey: realityPublickey,
-			ShortID:   realityShortid,
+			PublicKey:             realityPublickey,
+			ShortID:               realityShortid,
+			SupportX25519MLKEM768: &supportHybrid,
 		},
 		ClientFingerprint: "chrome",
 	}
@@ -373,7 +375,7 @@ func TestInboundVless_Reality(t *testing.T) {
 	})
 	t.Run("X25519MLKEM768", func(t *testing.T) {
 		outboundOptions := outboundOptions
-		outboundOptions.RealityOpts.SupportX25519MLKEM768 = true
+		outboundOptions.RealityOpts.SupportX25519MLKEM768 = nil
 		testInboundVless(t, inboundOptions, outboundOptions)
 		t.Run("xtls-rprx-vision", func(t *testing.T) {
 			outboundOptions := outboundOptions
@@ -384,6 +386,7 @@ func TestInboundVless_Reality(t *testing.T) {
 }
 
 func TestInboundVless_Reality_Grpc(t *testing.T) {
+	supportHybrid := false
 	inboundOptions := inbound.VlessOption{
 		RealityConfig: inbound.RealityConfig{
 			Dest:        net.JoinHostPort(realityDest, "443"),
@@ -397,8 +400,9 @@ func TestInboundVless_Reality_Grpc(t *testing.T) {
 		TLS:        true,
 		ServerName: realityDest,
 		RealityOpts: outbound.RealityOptions{
-			PublicKey: realityPublickey,
-			ShortID:   realityShortid,
+			PublicKey:             realityPublickey,
+			ShortID:               realityShortid,
+			SupportX25519MLKEM768: &supportHybrid,
 		},
 		ClientFingerprint: "chrome",
 		Network:           "grpc",
@@ -407,7 +411,7 @@ func TestInboundVless_Reality_Grpc(t *testing.T) {
 	testInboundVless(t, inboundOptions, outboundOptions)
 	t.Run("X25519MLKEM768", func(t *testing.T) {
 		outboundOptions := outboundOptions
-		outboundOptions.RealityOpts.SupportX25519MLKEM768 = true
+		outboundOptions.RealityOpts.SupportX25519MLKEM768 = nil
 		testInboundVless(t, inboundOptions, outboundOptions)
 	})
 }
